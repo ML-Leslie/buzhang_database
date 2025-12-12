@@ -1,4 +1,12 @@
 > - 在 windows 上使用该教程
+> - 前端：React + vite + Tailwind CSS
+> - 后端：Spring Boot + Spring Data JPA + PostgreSQL（OpenGauss）
+> - 数据库：OpenGauss 
+
+---
+# 1. 初步工作流程学习
+> [!WARNING]
+> 请只在 master 分支上执行下面内容到下个分割线！！！！（因为只是演示工作流程）
 ### 如何运行 opengauss 并使用 java 连接它
 #### docker 运行 opengauss 
 - 在docker desktop 中搜索：
@@ -67,7 +75,12 @@
   - ![alt text](images/README/image-3.png)
 
 ---
-
+# 2. 前端相关
 ### 前端设计
 - 参考“随手记”应用 [click me](https://www.feidee.com/cloud/#/book/transaction)
 - ![alt text](images/README/image-4.png)
+
+### 前端运行
+- 进入 `frontend` 目录
+- 运行 `npm install` 安装依赖
+- 运行 `npm run dev` 启动前端服务
