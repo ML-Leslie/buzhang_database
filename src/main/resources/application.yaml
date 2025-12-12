@@ -1,0 +1,11 @@
+server:
+  port: 7777
+
+spring:
+  datasource:
+    # 如果用 opengauss 驱动：jdbc:opengauss://localhost:5432/postgres
+    # 如果用 pg 驱动：jdbc:postgresql://localhost:5432/postgres
+    url: jdbc:postgresql://localhost:5432/postgres?currentSchema=public
+    username: gaussdb
+    password: OpenGauss@123
+    driver-class-name: org.postgresql.Driver # 或者 org.postgresql.Driver
