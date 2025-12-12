@@ -9,3 +9,10 @@ spring:
     username: gaussdb
     password: OpenGauss@123
     driver-class-name: org.postgresql.Driver # 或者 org.postgresql.Driver
+  # sql:
+  #   init:
+  #     mode: always #
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true # 开启下划线转驼峰
