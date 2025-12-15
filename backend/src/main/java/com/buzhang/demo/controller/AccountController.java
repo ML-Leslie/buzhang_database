@@ -14,6 +14,9 @@ public class AccountController {
     @Autowired
     private AssetAccountMapper accountMapper;
 
+    @Autowired
+    private com.buzhang.demo.service.BookkeepingService bookkeepingService;
+
     @GetMapping
     public List<AssetAccount> list(@RequestParam("userId") Long userId) {
         return accountMapper.findByUser(userId);
@@ -34,6 +37,6 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        accountMapper.delete(id);
+        bookkeepingService.deleteAccountWithTransactions(id);
     }
 }

@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS asset_account (
     user_id BIGINT NOT NULL REFERENCES sys_user(id),
     name VARCHAR(64) NOT NULL,
     balance NUMERIC(18,2) DEFAULT 0 NOT NULL,
-    type VARCHAR(32) NOT NULL
+    type VARCHAR(32) NOT NULL,
+    icon VARCHAR(64)
 );
 
 CREATE TABLE IF NOT EXISTS category (
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS category (
     name VARCHAR(64) NOT NULL,
     type VARCHAR(16) NOT NULL,
     icon VARCHAR(64),
+    total_amount NUMERIC(18,2) DEFAULT 0 NOT NULL,
     CONSTRAINT category_type_ck CHECK (UPPER(type) IN ('收入', '支出', 'INCOME', 'EXPENSE'))
 );
 

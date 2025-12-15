@@ -12,6 +12,13 @@ public class TransactionRecord {
     private Long accountId;
     private Long categoryId;
     private BigDecimal amount;
-    private LocalDateTime createTime;
+    private String type;
+    private LocalDateTime tradeTime;
     private String remark;
+
+    // 扩展字段，用于前端展示
+    private String categoryName;
+    private String categoryIcon;
+    private String categoryType;
+    private String accountName;
 }

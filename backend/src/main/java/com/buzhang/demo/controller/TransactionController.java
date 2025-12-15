@@ -37,4 +37,9 @@ public class TransactionController {
         }
         return transactionMapper.findByUser(userId);
     }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        bookkeepingService.deleteTransaction(id);
+    }
 }

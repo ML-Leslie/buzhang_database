@@ -15,7 +15,12 @@ public interface CategoryMapper {
     @Select("SELECT id, user_id, name, type, icon FROM category WHERE id = #{id}")
     Category findById(Long id);
 
-    @Select("SELECT id, user_id, name, type, icon FROM category WHERE user_id = #{userId} ORDER BY id")
+    @Select("SELECT c.id, c.user_id, c.name, c.type, c.icon, COALESCE(SUM(t.amount), 0) as totalAmount " +
+            "FROM category c " +
+            "LEFT JOIN transaction_record t ON c.id = t.category_id " +
+            "WHERE c.user_id = #{userId} " +
+            "GROUP BY c.id, c.user_id, c.name, c.type, c.icon " +
+            "ORDER BY c.id")
     List<Category> findByUser(Long userId);
 
     @Update("UPDATE category SET name = #{name}, type = #{type}, icon = #{icon} WHERE id = #{id}")

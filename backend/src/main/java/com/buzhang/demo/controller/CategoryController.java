@@ -14,6 +14,9 @@ public class CategoryController {
     @Autowired
     private CategoryMapper categoryMapper;
 
+    @Autowired
+    private com.buzhang.demo.service.BookkeepingService bookkeepingService;
+
     @PostMapping
     public Category create(@RequestBody Category category) {
         categoryMapper.insert(category);
@@ -34,6 +37,6 @@ public class CategoryController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        categoryMapper.delete(id);
+        bookkeepingService.deleteCategoryWithTransactions(id);
     }
 }

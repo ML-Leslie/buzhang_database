@@ -16,8 +16,21 @@ public class UserController {
 
     @PostMapping
     public SysUser register(@RequestBody SysUser user) {
+        // 简单的查重逻辑
+        if (userMapper.findByUsername(user.getUsername()) != null) {
+            throw new RuntimeException("用户名已存在");
+        }
         userMapper.insert(user);
         return user;
+    }
+
+    @PostMapping("/login")
+    public SysUser login(@RequestBody SysUser loginUser) {
+        SysUser user = userMapper.findByUsername(loginUser.getUsername());
+        if (user != null && user.getPassword().equals(loginUser.getPassword())) {
+            return user;
+        }
+        throw new RuntimeException("用户名或密码错误");
     }
 
     @GetMapping

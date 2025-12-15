@@ -14,7 +14,8 @@ erDiagram
         bigint user_id FK "归属用户"
         string name "账户名"
         decimal balance "当前余额"
-        string type "类型: 储蓄卡/信用卡/现金"
+        string type "类型: 储蓄卡/信用卡/现金/虚拟账户"
+        string icon "图标代号"
     }
 
     %% 分类表：花钱的名目
@@ -42,7 +43,8 @@ erDiagram
         bigint account_id FK "关联账户"
         bigint category_id FK "关联分类"
         decimal amount "金额"
-        timestamp create_time "时间"
+        string type "支出/收入"
+        timestamp trade_time "时间"
         string remark "备注"
     }
 
