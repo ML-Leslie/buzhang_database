@@ -1,3 +1,6 @@
+> [!NOTE]
+> 切换到最新分支：[buzhang@1.0.0](https://github.com/ML-Leslie/buzhang_database/tree/buzhang%401.0.0)
+
 > - 在 windows 上使用该教程
 ### 如何运行 opengauss 并使用 java 连接它
 #### docker 运行 opengauss 
