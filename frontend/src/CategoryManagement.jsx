@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, FileText, X } from 'lucide-react';
 
-const CategoryManagement = ({ currentUser, onNavigate }) => {
+const CategoryManagement = ({ currentUser, onNavigate, refreshKey }) => {
   const [activeType, setActiveType] = useState('EXPENSE'); // 'EXPENSE' or 'INCOME'
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // 新增：抽屉状态和表单数据
+  // 抽屉状态和表单数据
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [newCategory, setNewCategory] = useState({
     type: 'EXPENSE',
     name: '',
-    icon: ''
+    icon: '',
+    budget: '' 
   });
 
   const AVAILABLE_ICONS = [
@@ -24,7 +25,7 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
   ];
 
   const handleViewTransactions = (category) => {
-    // 1. 设置筛选条件到 localStorage
+    // 设置筛选条件到 localStorage
     localStorage.setItem('tx_filterCategory', category.id);
     
     // 映射分类类型到筛选类型
@@ -36,7 +37,7 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
     // 清空账户筛选，避免冲突
     localStorage.setItem('tx_filterAccount', '');
 
-    // 2. 跳转到交易列表页面
+    // 跳转到交易列表页面
     if (onNavigate) {
       onNavigate('transactions');
     }
@@ -63,16 +64,17 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
 
   const handleAddCategory = () => {
     setEditingId(null);
-    setNewCategory({ type: activeType, name: '', icon: '' });
+    setNewCategory({ type: activeType, name: '', icon: '', budget: '' });
     setIsDrawerOpen(true);
   };
 
   const handleEditCategory = (category) => {
     setEditingId(category.id);
     setNewCategory({
-      type: category.type === '支出' ? 'EXPENSE' : (category.type === '收入' ? 'INCOME' : category.type), // 兼容中文类型
+      type: category.type === '支出' ? 'EXPENSE' : (category.type === '收入' ? 'INCOME' : category.type), 
       name: category.name,
-      icon: category.icon
+      icon: category.icon,
+      budget: category.budgetAmount ? String(category.budgetAmount) : '' 
     });
     setIsDrawerOpen(true);
   };
@@ -106,6 +108,37 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
       });
 
       if (response.ok) {
+        const savedCategory = await response.json();
+        
+        // 如果是支出类型，且填写了预算，则保存预算
+        if (newCategory.type === 'EXPENSE' && newCategory.budget) {
+           const now = new Date();
+           const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+           
+           // 检查是否已有预算 (如果是编辑模式)
+           let budgetId = null;
+           if (editingId) {
+             const existingCategory = categories.find(c => c.id === editingId);
+             if (existingCategory && existingCategory.budgetId) {
+               budgetId = existingCategory.budgetId;
+             }
+           }
+
+           const budgetUrl = budgetId ? `/api/budgets/${budgetId}` : '/api/budgets';
+           const budgetMethod = budgetId ? 'PUT' : 'POST';
+           
+           await fetch(budgetUrl, {
+             method: budgetMethod,
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               userId: currentUser.id,
+               categoryId: savedCategory.id || (editingId ? editingId : null), // 新增时用返回的ID，编辑时用editingId
+               amount: parseFloat(newCategory.budget),
+               month: monthStr
+             })
+           });
+        }
+
         await fetchCategories();
         setIsDrawerOpen(false);
       } else {
@@ -119,7 +152,16 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
 
   useEffect(() => {
     fetchCategories();
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
+
+  // 自动打开抽屉
+  useEffect(() => {
+    const shouldOpenDrawer = localStorage.getItem('open_category_drawer');
+    if (shouldOpenDrawer === 'true') {
+      handleAddCategory();
+      localStorage.removeItem('open_category_drawer');
+    }
+  });
 
   const fetchCategories = async () => {
     if (!currentUser) return;
@@ -128,7 +170,28 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
       const response = await fetch(`/api/categories?userId=${currentUser.id}`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data);
+        
+        // 获取当前月度预算
+        const now = new Date();
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const budgetRes = await fetch(`/api/budgets?userId=${currentUser.id}&month=${monthStr}`);
+        
+        let budgets = [];
+        if (budgetRes.ok) {
+          budgets = await budgetRes.json();
+        }
+
+        // 将预算信息添加到分类数据中
+        const categoriesWithBudget = data.map(cat => {
+          const budget = budgets.find(b => b.categoryId === cat.id);
+          return {
+            ...cat,
+            budgetAmount: budget ? budget.amount : null,
+            budgetId: budget ? budget.id : null
+          };
+        });
+
+        setCategories(categoriesWithBudget);
       }
     } catch (error) {
       console.error('Failed to fetch categories', error);
@@ -152,13 +215,13 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
   }, [newCategory.name, newCategory.type, categories, editingId]);
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[600px]">
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[680px]">
       {/* 头部区域 */}
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-xl font-bold text-gray-800">收支分类管理</h2>
+        <h2 className="text-xl font-bold text-gray-800 font-serif">收支分类管理</h2>
         <button 
           onClick={handleAddCategory}
-          className="bg-[#e0a9bb] hover:bg-[#d098aa] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors text-sm font-medium"
+          className="bg-[#e0a9bb] hover:bg-[#d098aa] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors text-sm font-medium font-serif font-bold"
         >
           <Plus size={18} />
           新增分类
@@ -169,7 +232,7 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
       <div className="flex gap-8 border-b border-gray-100 mb-6">
         <button
           onClick={() => setActiveType('EXPENSE')}
-          className={`pb-3 px-2 text-sm font-medium transition-all relative ${
+          className={`pb-3 px-2 text-sm font-medium transition-all relative font-serif font-bold ${
             activeType === 'EXPENSE'
               ? 'text-[#e0a9bb]'
               : 'text-gray-500 hover:text-gray-700'
@@ -182,7 +245,7 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
         </button>
         <button
           onClick={() => setActiveType('INCOME')}
-          className={`pb-3 px-2 text-sm font-medium transition-all relative ${
+          className={`pb-3 px-2 text-sm font-medium transition-all relative font-serif font-bold ${
             activeType === 'INCOME'
               ? 'text-[#e0a9bb]'
               : 'text-gray-500 hover:text-gray-700'
@@ -198,8 +261,9 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
       {/* 表头 */}
       <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 rounded-xl text-xs font-medium text-gray-500 mb-2">
         <div className="col-span-3">分类名称</div>
-        <div className="col-span-4 text-right pr-8">{activeType === 'EXPENSE' ? '支出' : '收入'}</div>
-        <div className="col-span-4 text-right">操作</div>
+        <div className="col-span-3 text-center">{activeType === 'EXPENSE' ? '支出' : '收入'}</div>
+        {activeType === 'EXPENSE' && <div className="col-span-2 text-center">月度预算</div>}
+        <div className={`${activeType === 'EXPENSE' ? 'col-span-4' : 'col-span-6'} text-right`}>操作</div>
       </div>
 
       {/* 列表内容 */}
@@ -218,12 +282,19 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
             </div>
 
             {/* 金额 (统计数据) */}
-            <div className="col-span-4 text-right pr-8 font-medium text-gray-900">
+            <div className={`col-span-3 text-center font-medium ${activeType === 'EXPENSE' ? 'text-teal-500' : 'text-red-500'}`}>
               {Number(category.totalAmount || 0).toFixed(2)}
             </div>
 
+            {/* 月度预算 (仅支出显示) */}
+            {activeType === 'EXPENSE' && (
+              <div className="col-span-2 text-center text-gray-500 font-medium">
+                {category.budgetAmount ? Number(category.budgetAmount).toFixed(2) : '-'}
+              </div>
+            )}
+
             {/* 操作按钮 */}
-            <div className="col-span-5 flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className={`${activeType === 'EXPENSE' ? 'col-span-4' : 'col-span-6'} flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity`}>
               <button 
                 onClick={() => handleEditCategory(category)}
                 className="text-gray-400 hover:text-[#e0a9bb] flex items-center gap-1 text-xs transition-colors"
@@ -316,7 +387,7 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({...newCategory, name: e.target.value.slice(0, 20)})}
                     placeholder="请输入"
-                    className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all text-sm ${
+                    className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all text-sm placeholder:font-serif placeholder:text-gray-400 ${
                       isDuplicateName 
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:ring-[#e0a9bb]/20 focus:border-[#e0a9bb]'
@@ -332,6 +403,28 @@ const CategoryManagement = ({ currentUser, onNavigate }) => {
                   </span>
                 )}
               </div>
+
+              {/* 本月预算 (仅支出类型显示) */}
+              {newCategory.type === 'EXPENSE' && (
+                <div className="space-y-3 animate-in slide-in-from-top-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    本月预算 <span className="text-gray-400 text-xs font-normal"></span>
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={newCategory.budget}
+                      onChange={(e) => setNewCategory({...newCategory, budget: e.target.value})}
+                      onWheel={(e) => e.target.blur()} 
+                      placeholder="请输入预算金额"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e0a9bb]/20 focus:border-[#e0a9bb] transition-all text-sm text-red-500 font-sans placeholder:font-serif placeholder:text-gray-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                      CNY
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* 分类图标 */}
               <div className="space-y-3">

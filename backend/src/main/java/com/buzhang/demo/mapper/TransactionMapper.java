@@ -44,4 +44,39 @@ public interface TransactionMapper {
 
     @Delete("DELETE FROM transaction_record WHERE id = #{id}")
     void deleteById(Long id);
+
+    // 支持主页统计功能的查询
+    @Select("SELECT COALESCE(SUM(amount), 0) FROM transaction_record " +
+            "WHERE user_id = #{userId} AND (type = #{type} OR type = #{typeCn}) " +
+            "AND trade_time >= #{start} AND trade_time <= #{end}")
+    java.math.BigDecimal sumByTypeAndPeriod(@Param("userId") Long userId, 
+                                            @Param("type") String type, 
+                                            @Param("typeCn") String typeCn,
+                                            @Param("start") java.time.LocalDateTime start, 
+                                            @Param("end") java.time.LocalDateTime end);
+
+    @Select("SELECT c.name as name, c.icon as icon, SUM(t.amount) as amount " +
+            "FROM transaction_record t " +
+            "JOIN category c ON t.category_id = c.id " +
+            "WHERE t.user_id = #{userId} AND (t.type = 'EXPENSE' OR t.type = '支出') " +
+            "AND t.trade_time >= #{start} AND t.trade_time <= #{end} " +
+            "GROUP BY t.category_id, c.name, c.icon " +
+            "ORDER BY amount DESC " +
+            "LIMIT #{limit}")
+    List<java.util.Map<String, Object>> getCategoryRanking(@Param("userId") Long userId, 
+                                                           @Param("start") java.time.LocalDateTime start, 
+                                                           @Param("end") java.time.LocalDateTime end,
+                                                           @Param("limit") int limit);
+
+    @Select("SELECT CAST(trade_time AS DATE) as date, " +
+            "SUM(CASE WHEN (type = 'INCOME' OR type = '收入') THEN amount ELSE 0 END) as income, " +
+            "SUM(CASE WHEN (type = 'EXPENSE' OR type = '支出') THEN amount ELSE 0 END) as expense " +
+            "FROM transaction_record " +
+            "WHERE user_id = #{userId} " +
+            "AND trade_time >= #{start} AND trade_time <= #{end} " +
+            "GROUP BY CAST(trade_time AS DATE) " +
+            "ORDER BY date")
+    List<java.util.Map<String, Object>> getDailyStats(@Param("userId") Long userId, 
+                                                      @Param("start") java.time.LocalDateTime start, 
+                                                      @Param("end") java.time.LocalDateTime end);
 }

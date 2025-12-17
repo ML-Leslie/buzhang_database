@@ -39,10 +39,10 @@ const Sidebar = ({ activeTab, setActiveTab, onOpenRecordModal, currentUser, onLo
       <div className="p-6 pb-2 ">
         <button 
           onClick={onOpenRecordModal}
-          className="w-full bg-white border border-[#e0A9BB] text-[#e0A9BB] hover:bg-pink-50 transition-all py-3 rounded-xl flex items-center justify-center gap-2 text-me font-medium active:scale-95"
+          className="w-full bg-white border border-[#e0A9BB] text-[#e0A9BB] border-1 font-semibold hover:bg-pink-50 transition-all py-3 rounded-xl flex items-center justify-center gap-2 text-me font-medium active:scale-95"
         >
-          <Plus size={20} />
-          记一笔
+          <Plus size={15} />
+          记一记
         </button>
       </div>
       

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, FileText, Wallet, CreditCard, Banknote, Smartphone, TrendingUp, ChevronDown, ChevronRight, X } from 'lucide-react';
 
-const AccountManagement = ({ currentUser, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState('asset'); // 'asset' or 'liability'
+const AccountManagement = ({ currentUser, onNavigate, refreshKey }) => {
+  const [activeTab, setActiveTab] = useState('asset');
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({
@@ -21,9 +21,9 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
     totalLiabilities: 0
   });
 
-  // 新增：抽屉状态和表单数据
+  // 抽屉状态和表单数据
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null); // 新增：编辑状态ID
+  const [editingId, setEditingId] = useState(null); 
   const [newAccount, setNewAccount] = useState({
     type: '',
     name: '',
@@ -40,14 +40,14 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
   ];
 
   const handleViewTransactions = (account) => {
-    // 1. 设置筛选条件到 localStorage
+    // 设置筛选条件到 localStorage
     localStorage.setItem('tx_filterAccount', account.id);
     
     // 清空分类筛选和类型筛选，避免冲突
     localStorage.setItem('tx_filterCategory', '');
     localStorage.setItem('tx_filterType', 'ALL');
 
-    // 2. 跳转到交易列表页面
+    // 跳转到交易列表页面
     if (onNavigate) {
       onNavigate('transactions');
     }
@@ -59,7 +59,7 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
       type: account.type,
       name: account.name,
       icon: account.icon,
-      currency: 'CNY', // 假设目前只支持CNY
+      currency: 'CNY', // 目前只支持CNY
       balance: String(account.balance)
     });
     setIsDrawerOpen(true);
@@ -237,34 +237,43 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
 
   useEffect(() => {
     fetchAccounts();
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
+
+  // 处理从其他页面跳转时打开抽屉
+  useEffect(() => {
+    const shouldOpenDrawer = localStorage.getItem('open_account_drawer');
+    if (shouldOpenDrawer === 'true') {
+      handleOpenDrawer();
+      localStorage.removeItem('open_account_drawer');
+    }
+  });
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[600px]">
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[680px]">
       {/* 头部统计区域 */}
       <div className="flex justify-between items-start mb-8">
         <div>
           <div className="flex items-baseline gap-6 mb-2">
-            <h2 className="text-xl font-bold text-gray-800">账户管理</h2>
+            <h2 className="text-xl font-bold text-gray-800 font-serif">账户管理</h2>
             <div className="flex gap-6 text-sm">
               <div className="flex gap-2">
                 <span className="text-gray-500">净资产</span>
-                <span className="font-bold text-gray-800">{formatCurrency(stats.netAssets)}</span>
+                <span className="font-bold text-[#5D9CEC]">{formatCurrency(stats.netAssets)}</span>
               </div>
               <div className="flex gap-2">
                 <span className="text-gray-500">总资产</span>
-                <span className="font-bold text-gray-800">{formatCurrency(stats.totalAssets)}</span>
+                <span className="font-bold text-[#FB2C36]">{formatCurrency(stats.totalAssets)}</span>
               </div>
               <div className="flex gap-2">
                 <span className="text-gray-500">总负债</span>
-                <span className="font-bold text-gray-800">{formatCurrency(stats.totalLiabilities)}</span>
+                <span className="font-bold text-[#00BBA7]">{formatCurrency(stats.totalLiabilities)}</span>
               </div>
             </div>
           </div>
         </div>
         <button 
           onClick={handleOpenDrawer}
-          className="bg-[#e0a9bb] hover:bg-[#d098aa] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors text-sm font-medium"
+          className="bg-[#e0a9bb] hover:bg-[#d098aa] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors text-sm font-medium  font-serif"
         >
           <Plus size={18} />
           新增账户
@@ -275,7 +284,7 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
       <div className="flex gap-8 border-b border-gray-100 mb-6">
         <button
           onClick={() => setActiveTab('asset')}
-          className={`pb-3 px-2 text-sm font-medium transition-all relative ${
+          className={`pb-3 px-2 text-sm font-medium transition-all relative font-serif font-bold ${
             activeTab === 'asset'
               ? 'text-[#e0a9bb]'
               : 'text-gray-500 hover:text-gray-700'
@@ -288,7 +297,7 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
         </button>
         <button
           onClick={() => setActiveTab('liability')}
-          className={`pb-3 px-2 text-sm font-medium transition-all relative ${
+          className={`pb-3 px-2 text-sm font-medium transition-all relative font-serif font-bold ${
             activeTab === 'liability'
               ? 'text-[#e0a9bb]'
               : 'text-gray-500 hover:text-gray-700'
@@ -303,10 +312,10 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
 
       {/* 表头 */}
       <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 rounded-xl text-xs font-medium text-gray-500 mb-2">
-        <div className="col-span-4">账户名称</div>
-        <div className="col-span-3 text-right pr-8">{activeTab === 'liability' ? '负债' : '资产'}</div>
-        <div className="col-span-2 text-center">币种</div>
-        <div className="col-span-3 text-right">操作</div>
+        <div className="col-span-3">账户名称</div>
+        <div className="col-span-2 text-right pr-8">{activeTab === 'liability' ? '负债' : '资产'}</div>
+        <div className="col-span-2 text-right">币种</div>
+        <div className="col-span-4 text-right">操作</div>
       </div>
 
       {/* 账户列表 */}
@@ -316,11 +325,11 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
             {/* 分组标题 */}
             <div 
               onClick={() => toggleGroup(groupName)}
-              className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-gray-50 rounded-lg text-gray-500 text-sm select-none"
+              className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-gray-50 rounded-lg text-gray-500 text-sm select-none font-serif"
             >
               {expandedGroups[groupName] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               <span>{groupName}</span>
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full font-sans">
                 {formatCurrency(groupAccounts.reduce((sum, acc) => sum + parseFloat(acc.balance || 0), 0))}
               </span>
             </div>
@@ -333,28 +342,28 @@ const AccountManagement = ({ currentUser, onNavigate }) => {
                   return (
                     <div
                       key={account.id}
-                      className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 rounded-xl items-center transition-colors group"
+                      className="grid grid-cols-12 gap-1 px-4 py-1 hover:bg-gray-50 rounded-xl items-center transition-colors group"
                     >
                       {/* 账户名称 */}
-                      <div className="col-span-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl">
+                      <div className="col-span-3 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
                           {account.icon ? account.icon : defaultIcon}
                         </div>
-                        <span className="font-medium text-gray-700">{account.name}</span>
+                        <span className="font-medium text-gray-700 font-serif">{account.name}</span>
                       </div>
 
                       {/* 资产余额 */}
-                      <div className="col-span-3 text-right pr-8 font-medium text-gray-900">
+                      <div className="col-span-2 text-right pr-8 font-medium text-gray-900">
                         {formatCurrency(account.balance)}
                       </div>
 
                       {/* 币种 */}
-                      <div className="col-span-2 text-center text-gray-500 text-sm">
+                      <div className="col-span-2 text-right text-gray-500 text-sm">
                         CNY
                       </div>
 
                       {/* 操作按钮 */}
-                      <div className="col-span-3 flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="col-span-5 text-right flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleEditAccount(account)}
                           className="text-gray-400 hover:text-[#e0a9bb] flex items-center gap-1 text-xs transition-colors"

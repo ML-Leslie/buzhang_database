@@ -9,20 +9,20 @@ import AccountManagement from './AccountManagement';
 import LoginPage from './LoginPage'; 
 import RegisterPage from './RegisterPage';
 
-// --- 4. 主程序 (控制页面切换) ---
+// 主程序 (控制页面切换) 
 export default function App() {
-  // 0. 新增：登录状态管理
+  // 登录状态管理
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
   });
 
-  // 新增：当前用户信息
+  // 当前用户信息
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('currentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // 新增：认证页面状态 ('login' | 'register')
+  // 认证页面状态 ('login' | 'register')
   const [authMode, setAuthMode] = useState('login');
 
   const handleLogin = (user) => {
@@ -40,26 +40,30 @@ export default function App() {
     setCurrentUser(user);
   };
 
-  // 1. 修改：从 localStorage 读取初始状态，如果没有则默认为 'home'
+  // 从 localStorage 读取初始状态，如果没有则默认为 'home'
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('activeTab') || 'home';
   });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // 1. 修改：当 activeTab 变化时，保存到 localStorage
+  const triggerRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // 当 activeTab 变化时，保存到 localStorage
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
-  // 2. 修改：定义每个页面的宽度配置
-  // 你可以在这里自由调整每个页面的宽度 (max-w-*)
+  // 定义每个页面的宽度配置
   const getPageMaxWidth = () => {
     switch (activeTab) {
       case 'home':
-        return 'max-w-6xl'; // 仪表盘保持原宽度
+        return 'max-w-6xl'; 
       case 'transactions':
-        return 'max-w-7xl'; // 交易列表可以更宽一点，方便查看更多列
+        return 'max-w-7xl'; 
       case 'reports':
         return 'max-w-7xl';
       case 'categories':
@@ -76,7 +80,8 @@ export default function App() {
     // 传递 currentUser 给子组件
     const props = { 
       currentUser,
-      onNavigate: setActiveTab // 传递导航函数
+      onNavigate: setActiveTab, // 传递导航函数
+      refreshKey // 传递刷新触发器
     };
     
     switch (activeTab) {
@@ -132,7 +137,7 @@ export default function App() {
 
       {/* 主内容区域 */}
       <div className="flex-1 overflow-y-auto">
-        {/* 2. 修改：应用动态宽度类名 */}
+        {/* 应用动态宽度类名 */}
         <div className={`p-8 mx-auto space-y-6 ${getPageMaxWidth()}`}>
           {renderContent()}
         </div>
@@ -143,6 +148,8 @@ export default function App() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         currentUser={currentUser}
+        onSaveSuccess={triggerRefresh}
+        onNavigate={setActiveTab}
       />
     </div>
   );

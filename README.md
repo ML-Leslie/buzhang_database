@@ -1,13 +1,15 @@
+# buzhang 记账™
+
+https://github.com/user-attachments/assets/e39a7839-cc8d-45ec-870c-27fc57a9829e
+
 > - 在 windows 上使用该教程
 > - 前端：React + vite + Tailwind CSS
 > - 后端：Spring Boot + Spring Data JPA + PostgreSQL（OpenGauss）
 > - 数据库：OpenGauss 
 
 ---
-# 1. 初步工作流程学习
-> [!WARNING]
-> 请只在 master 分支上执行下面内容到下个分割线！！！！（因为只是演示工作流程）
-### 如何运行 opengauss 并使用 java 连接它
+
+### 1. 运行 opengauss（数据库）
 #### docker 运行 opengauss 
 - 在docker desktop 中搜索：
   - ![alt text](images/README/image.png)
@@ -25,62 +27,18 @@
     - 运行成功后，可以通过以下命令查看容器状态：
       - `docker ps`
 
-### 可以使用 DBeaver 连接 opengauss
+#### 【可略】可以使用 DBeaver 连接 opengauss
 - 在 DBeaver 中创建一个新连接，选择 PostgreSQL，然后输入以下信息：
   - 主机名：localhost
   - 端口：5432
   - 数据库名称：postgres
   - 用户名：gaussdb
   - 密码：OpenGauss@123
-- 然后在 postgres 数据库的 public 模式中创建一个表：（只适用于现在代码示例，用于演示工作流程）
-    ```sql
-    CREATE TABLE account_record (
-        id SERIAL PRIMARY KEY,
-        amount DECIMAL(10, 2) NOT NULL, -- 金额
-        type VARCHAR(10) NOT NULL,      -- 类型：支出/收入
-        category VARCHAR(50),           -- 分类：餐饮、交通等
-        remark VARCHAR(255),            -- 备注
-        create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 时间
-    );
-    ```
-#### 使用 Java 连接 opengauss
-- 本项目现在的结构是：（只适用于现在代码示例，用于演示工作流程）
-    ```
-    src/main/java/com/example/account (你的包名)
-    ├── AccountApplication.java  (启动类，自动生成的)
-    ├── entity                   (存放数据库实体类)
-    │   └── Account.java
-    ├── mapper                   (存放数据库操作接口)
-    │   └── AccountMapper.java
-    └── controller               (存放 Web 接口)
-        └── AccountController.java
-    ```
-- 打开 `main/java/com/buzhang/demo/DemoApplication.java`
-- 运行
-  - 默认端口是 8080，但是我的电脑端口被占了，所以我改成了 7777 。如果你端口也被占用了，在 `application.yml` 中修改即可
 
-### 使用 apifox 进行接口测试
-- 打开 apifox（桌面版和网页版都可以）
-  - ![alt text](images/README/image-2.png)
-    ```json
-    {
-        "id":1,
-        "amount": 25.5,
-        "type": "支出",
-        "category": "餐饮",
-        "remark": "黄焖鸡米饭"
-    }
-    ```
-- 看到成功插入
-  - ![alt text](images/README/image-3.png)
+### 2. 运行后端
+- 后端运行 `backend\src\main\java\com\buzhang\demo\DemoApplication.java` 文件即可
 
----
-# 2. 前端相关
-### 前端设计
-- 参考“随手记”应用 [click me](https://www.feidee.com/cloud/#/book/transaction)
-- ![alt text](images/README/image-4.png)
-
-### 前端运行
-- 进入 `frontend` 目录
-- 运行 `npm install` 安装依赖
-- 运行 `npm run dev` 启动前端服务
+### 3. 运行前端
+- 另外打开一个终端，进入 `frontend` 目录，运行以下命令：
+  - `npm install`
+  - `npm run dev`

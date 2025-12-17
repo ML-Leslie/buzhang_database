@@ -1,19 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Trash2, Filter, ChevronDown } from 'lucide-react';
 
-// --- 静态资源映射 ---
-const CATEGORY_MAP = {
-  '餐饮': { icon: '🍔', color: 'bg-orange-100 text-orange-500' },
-  '交通': { icon: '🚗', color: 'bg-blue-100 text-blue-500' },
-  '购物': { icon: '🛍️', color: 'bg-pink-100 text-pink-500' },
-  '娱乐': { icon: '🎮', color: 'bg-purple-100 text-purple-500' },
-  '居住': { icon: '🏠', color: 'bg-yellow-100 text-yellow-500' },
-  '医疗': { icon: '💊', color: 'bg-red-100 text-red-500' },
-  '工资': { icon: '💰', color: 'bg-green-100 text-green-500' },
-  '默认': { icon: '📄', color: 'bg-gray-100 text-gray-500' },
-};
 
-// --- 辅助函数：格式化日期 ---
+// 格式化日期 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr);
   return {
@@ -24,7 +13,7 @@ const formatDate = (dateStr) => {
   };
 };
 
-// --- 辅助函数：获取周数 ---
+// 辅助函数：获取周数 
 const getWeekNumber = (d) => {
   const date = new Date(d.getTime());
   date.setHours(0, 0, 0, 0);
@@ -33,25 +22,25 @@ const getWeekNumber = (d) => {
   return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 };
 
-export default function TransactionList({ currentUser }) {
+export default function TransactionList({ currentUser, refreshKey }) {
   const [allTransactions, setAllTransactions] = useState([]); 
   const [loading, setLoading] = useState(false);
   
-  // --- 筛选状态 ---
+  // 筛选状态
   // 选项：'year', 'quarter', 'month', 'week', 'day'
   // 初始化时尝试从 localStorage 读取
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('tx_viewMode') || 'month'); 
   const [selectedPeriod, setSelectedPeriod] = useState(() => localStorage.getItem('tx_selectedPeriod') || ''); 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // 新增：分类和账户筛选状态
+  // 分类和账户筛选状态
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [filterCategory, setFilterCategory] = useState(() => localStorage.getItem('tx_filterCategory') || ''); // 分类ID
   const [filterAccount, setFilterAccount] = useState(() => localStorage.getItem('tx_filterAccount') || '');   // 账户ID
   const [filterType, setFilterType] = useState(() => localStorage.getItem('tx_filterType') || 'ALL');      // 'ALL', 'EXPENSE', 'INCOME'
 
-  // --- 持久化筛选状态 ---
+  // 持久化筛选状态
   useEffect(() => { localStorage.setItem('tx_viewMode', viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem('tx_selectedPeriod', selectedPeriod); }, [selectedPeriod]);
   useEffect(() => { localStorage.setItem('tx_filterCategory', filterCategory); }, [filterCategory]);
@@ -65,7 +54,7 @@ export default function TransactionList({ currentUser }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // 1. 并行获取基础数据
+        // 并行获取基础数据
         const [categoriesRes, accountsRes, transactionsRes] = await Promise.all([
           fetch(`/api/categories?userId=${currentUser.id}`),
           fetch(`/api/accounts?userId=${currentUser.id}`),
@@ -79,13 +68,12 @@ export default function TransactionList({ currentUser }) {
         setCategories(categoriesData);
         setAccounts(accountsData);
 
-        // 2. 组装数据 (不再需要前端 Join，后端已处理)
+        // 组装数据 后端处理
         const mergedData = transactions.map(t => {
           // 处理日期：后端返回 ISO 格式 (e.g. 2023-12-12T10:00:00)，截取前10位
           const dateStr = t.tradeTime ? t.tradeTime.substring(0, 10) : '';
 
-          // 核心修复：根据 type 或 categoryType 确定金额正负
-          // 后端返回的 amount 可能是绝对值，需要根据类型转为带符号数值
+          // 根据 type 或 categoryType 确定金额正负
           const type = t.type || t.categoryType;
           const isExpense = type === 'EXPENSE' || type === '支出';
           const signedAmount = isExpense ? -Math.abs(t.amount) : Math.abs(t.amount);
@@ -105,7 +93,7 @@ export default function TransactionList({ currentUser }) {
 
         setAllTransactions(mergedData);
 
-        // 4. 设置默认选中最近的月份
+        // 设置默认选中最近的月份
         if (mergedData.length > 0 && !selectedPeriod) {
           const latestDate = new Date(mergedData[0].date);
           const year = latestDate.getFullYear();
@@ -121,16 +109,16 @@ export default function TransactionList({ currentUser }) {
     };
 
     fetchData();
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
 
-  // --- 核心逻辑 0: 全局筛选 (分类、账户、收支类型) ---
+  // 全局筛选 (分类、账户、收支类型) 
   const baseFilteredTransactions = useMemo(() => {
     return allTransactions.filter(item => {
-      // 1. 筛选分类
+      // 筛选分类
       if (filterCategory && String(item.categoryId) !== String(filterCategory)) return false;
-      // 2. 筛选账户
+      // 筛选账户
       if (filterAccount && String(item.accountId) !== String(filterAccount)) return false;
-      // 3. 筛选收支类型
+      // 筛选收支类型
       if (filterType === 'EXPENSE' && item.amount >= 0) return false;
       if (filterType === 'INCOME' && item.amount < 0) return false;
       
@@ -138,7 +126,7 @@ export default function TransactionList({ currentUser }) {
     });
   }, [allTransactions, filterCategory, filterAccount, filterType]);
 
-  // --- 核心逻辑 1: 生成左侧导航列表数据 (基于全局筛选后的数据) ---
+  // 生成左侧导航列表数据 (基于全局筛选后的数据)
   const sidebarList = useMemo(() => {
     if (!baseFilteredTransactions.length) return [];
 
@@ -191,7 +179,7 @@ export default function TransactionList({ currentUser }) {
 
   }, [baseFilteredTransactions, viewMode]);
 
-  // --- 核心逻辑 2: 根据左侧选择，筛选右侧列表数据 ---
+  // 根据左侧选择，筛选右侧列表数据
   const filteredTransactions = useMemo(() => {
     if (!selectedPeriod) return [];
     
@@ -208,7 +196,7 @@ export default function TransactionList({ currentUser }) {
     });
   }, [baseFilteredTransactions, selectedPeriod, viewMode]);
 
-  // --- 核心逻辑 3: 右侧列表内容 ---
+  // 右侧列表内容
   const groupedListContent = useMemo(() => {
     const groups = filteredTransactions.reduce((acc, item) => {
       if (!acc[item.date]) acc[item.date] = [];
@@ -219,7 +207,7 @@ export default function TransactionList({ currentUser }) {
     return Object.entries(groups).sort((a, b) => new Date(b[0]) - new Date(a[0]));
   }, [filteredTransactions]);
 
-  // --- 新增：删除功能 ---
+  // 删除功能
   const handleDelete = async (id) => {
     if (!window.confirm('确定要删除这条记录吗？')) return;
 
@@ -244,7 +232,7 @@ export default function TransactionList({ currentUser }) {
 
   const getCategoryStyle = (item) => {
     const staticStyle = { icon: '📄', color: 'bg-gray-100 text-gray-500' };
-    // 如果后端有图标，优先使用后端的图标
+    // 优先使用后端的图标
     if (item.categoryIcon) {
       return { ...staticStyle, icon: item.categoryIcon };
     }
@@ -262,14 +250,14 @@ export default function TransactionList({ currentUser }) {
   };
 
   return (
-    <div className="flex gap-5 h-[680px]">
+    <div className="flex gap-1 h-[680px]">
       
-      {/* ================= 左侧导航栏 ================= */}
+      {/* 左侧导航栏*/}
       <div className="w-64 bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
         
         {/* 顶部：汇总 + 切换维度 */}
         <div className="p-5 border-b border-gray-50 space-y-4">
-          {/* 1. 汇总维度 */}
+          {/* 汇总维度 */}
           <div className="flex items-center justify-between">
             <span className="text-gray-500 font-medium text-sm font-serif">汇总维度:</span>
             <div className="relative">
@@ -293,7 +281,7 @@ export default function TransactionList({ currentUser }) {
                      <button 
                        key={m}
                        onClick={() => { setViewMode(m); setSelectedPeriod(''); setIsDropdownOpen(false); }} 
-                       className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-pink-50 ${viewMode === m ? 'text-[#e0A9BB]' : 'text-gray-600'}`}
+                       className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-pink-50 ${viewMode === m ? 'text-[#e0A9BB]' : 'text-gray-600'} font-serif`}
                      >
                        按{modeNames[m]}
                      </button>
@@ -303,13 +291,13 @@ export default function TransactionList({ currentUser }) {
             </div>
           </div>
 
-          {/* 2. 分类筛选 */}
-          <div className="space-y-1">
+          {/* 分类筛选 */}
+          <div className="space-y-1 font-serif">
             <span className="text-gray-500 font-medium text-sm font-serif">分类</span>
             <select 
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-600 focus:outline-none focus:border-[#e0A9BB] transition-colors appearance-none cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-500 focus:outline-none focus:border-[#e0A9BB] transition-colors appearance-none cursor-pointer"
             >
               <option value="">全部分类</option>
               {categories.map(c => (
@@ -318,13 +306,13 @@ export default function TransactionList({ currentUser }) {
             </select>
           </div>
 
-          {/* 3. 账户筛选 */}
-          <div className="space-y-1">
+          {/*账户筛选 */}
+          <div className="space-y-1 font-serif">
             <span className="text-gray-500 font-medium text-sm font-serif">账户</span>
             <select 
               value={filterAccount}
               onChange={(e) => setFilterAccount(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-600 focus:outline-none focus:border-[#e0A9BB] transition-colors appearance-none cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-500 focus:outline-none focus:border-[#e0A9BB] transition-colors appearance-none cursor-pointer"
             >
               <option value="">全部账户</option>
               {accounts.map(a => (
@@ -345,26 +333,33 @@ export default function TransactionList({ currentUser }) {
             return (
               <React.Fragment key={item.id}>
                 {showYearHeader && (
-                  <div className="px-5 pt-4 pb-1 text-xl font-bold text-gray-400/80 font-serif">
+                  <div className="px-5 pt-1 text-sm font-bold text-gray-400/80">
                     {item.year}年
                   </div>
                 )}
                 <div 
                   onClick={() => setSelectedPeriod(item.id)}
-                  className={`relative px-5 py-4 cursor-pointer transition-all group border-l-4 
-                    ${isSelected ? 'border-[#e0A9BB] bg-pink-50/40' : 'border-transparent hover:bg-gray-50'}`}
+                  className={`relative px-5 py-3 cursor-pointer transition-all group 
+                    ${isSelected ? 'bg-pink-50/40' : 'hover:bg-gray-30'}`}
                 >
+                    {/* 左侧短竖条 */}
+                    {isSelected && (
+                        <span className="
+                        absolute left-0 top-1/2 -translate-y-1/2
+                        w-1 h-8 rounded-full bg-[#e0A9BB]
+                        " />
+                    )}
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className={`text-lg font-bold ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
+                    <span className={`font-sans font-semibold text-md ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
                       {item.label}
                     </span>
                     <span className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-400'}`}>
-                      结余 {(item.income - item.expense).toFixed(2)}
+                      结余： {(item.income - item.expense).toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400 font-mono">
-                    <span className="text-red-400 opacity-80">-{item.expense.toFixed(2)}</span>
-                    <span className="text-green-500 opacity-80">+{item.income.toFixed(2)}</span>
+                  <div className="flex justify-between text-xs text-gray-400 font-sans">
+                    <span className="text-teal-500 opacity-50">-{item.expense.toFixed(2)}</span>
+                    <span className="text-red-500 opacity-50">+{item.income.toFixed(2)}</span>
                   </div>
                 </div>
               </React.Fragment>
@@ -373,16 +368,16 @@ export default function TransactionList({ currentUser }) {
         </div>
       </div>
 
-      {/* ================= 右侧内容列表 ================= */}
+      {/* 右侧内容列表*/}
       <div className="flex-1 bg-white rounded-3xl border border-gray-100 flex flex-col overflow-hidden">
         
-        {/* Header 区：只保留标题和搜索框 */}
+        {/* Header 区 */}
         <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white z-10">
-           <h2 className="text-xl font-bold text-gray-800">
+           <h2 className="text-xl font-bold text-gray-800 font-serif">
              流水列表
            </h2>
            
-           <div className="flex bg-gray-100 p-1 rounded-xl">
+           <div className="flex bg-gray-100 p-1 rounded-xl font-serif">
              <button 
                onClick={() => setFilterType('ALL')}
                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filterType === 'ALL' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -404,12 +399,12 @@ export default function TransactionList({ currentUser }) {
            </div>
         </div>
 
-        {/* 列名：时间改为日期 */}
+        {/* 日期 */}
         <div className="grid grid-cols-12 px-6 py-3 bg-gray-50/50 text-xs font-medium text-gray-400 border-b border-gray-100">
-          <div className="col-span-3 pl-2">分类</div>
+          <div className="col-span-3 ">分类</div>
           <div className="col-span-2">金额</div>
           <div className="col-span-2">账户</div>
-          <div className="col-span-1">日期</div> {/* 修改点：时间 -> 日期 */}
+          <div className="col-span-1">日期</div> 
           <div className="col-span-3 text-center">备注</div>
           <div className="col-span-1 text-right pr-2">操作</div>
         </div>
@@ -417,12 +412,12 @@ export default function TransactionList({ currentUser }) {
         {/* 列表内容 */}
         <div className="flex-1 overflow-y-auto pb-10">
           {!selectedPeriod ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 font-serif">
               <Filter size={48} className="mb-4 opacity-20"/>
               <p>请选择左侧时间段查看详情</p>
             </div>
           ) : groupedListContent.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 font-serif">
               <p>该时间段暂无流水</p>
             </div>
           ) : (
@@ -439,32 +434,31 @@ export default function TransactionList({ currentUser }) {
                     const style = getCategoryStyle(item);
                     const isExpense = item.amount < 0;
                     return (
-                      <div key={item.id} className="group grid grid-cols-12 items-center py-3 px-2 rounded-xl hover:bg-gray-50 transition-all relative">
+                      <div key={item.id} className="group grid grid-cols-12 items-center py-2 px-2 mb-3 rounded-l bg-gray-30 hover:transition-all relative">
                         {/* 1. 分类 */}
                         <div className="col-span-3 flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-sm ${style.color} bg-opacity-20`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-md shadow-sm ${style.color} bg-opacity-20`}>
                             {style.icon}
                           </div>
-                          <span className="font-medium text-gray-700">{item.category}</span>
+                          <span className="text-sm font-serif">{item.category}</span>
                         </div>
                         {/* 2. 金额 */}
-                        <div className="col-span-2 font-bold font-mono tracking-tight">
-                          {isExpense ? <span className="text-gray-800">{item.amount.toFixed(2)}</span> : <span className="text-[#e0A9BB]">+{item.amount.toFixed(2)}</span>}
+                        <div className="col-span-2 font-bold tracking-tight font-sans font-semibold text-sm">
+                          {isExpense ? <span className="text-gray-800">{item.amount.toFixed(2)}</span> : <span className="text-red-500">+{item.amount.toFixed(2)}</span>}
                         </div>
                         {/* 3. 账户 */}
-                        <div className="col-span-2 text-sm text-gray-500 flex items-center gap-1">
+                        <div className="col-span-2 text-sm text-gray-500 flex items-center gap-1 font-serif">
                            <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>{item.account}
                         </div>
-                        {/* 4. 日期 (原时间) */}
-                        <div className="col-span-1 text-xs text-gray-400 font-mono">
-                          {item.date} {/* 修改点：显示日期，不显示时间 */}
+                        {/* 4. 日期 */}
+                        <div className="col-span-1 text-xs text-gray-400">
+                          {item.date}
                         </div>
                         {/* 5. 备注 */}
-                        <div className="col-span-3 text-sm text-gray-400 truncate text-center pr-4" title={item.remark}>{item.remark || '-'}</div>
+                        <div className="col-span-3 text-sm text-gray-400 truncate text-center pr-4 font-serif" title={item.remark}>{item.remark || '-'}</div>
                         {/* 6. 操作 */}
                         <div className="col-span-1 flex justify-end">
                            <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-                             {/* 编辑按钮已移除 */}
                              <button 
                                onClick={() => handleDelete(item.id)}
                                className="p-1.5 hover:text-red-500 hover:bg-red-50 rounded transition-colors"

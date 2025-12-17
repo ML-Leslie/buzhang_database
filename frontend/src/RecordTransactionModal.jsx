@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, CreditCard, Tag, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CreditCard, Tag, ChevronLeft, ChevronRight, FileText, Plus } from 'lucide-react';
 
-// --- Helper Components ---
 
-// 1. Calculator Component
-// Calculator Component
+// 计算组件
 const Calculator = ({ value, onChange, onCalculate }) => {
   
   const handleInput = (key) => {
@@ -83,9 +81,9 @@ const Calculator = ({ value, onChange, onCalculate }) => {
           </button>
         ))}
 
-        {/* 底部功能区：新增 AC 和 = */}
+        {/* 底部功能区域 */}
         
-        {/* AC 按钮：占 1 格 */}
+        {/* AC 按钮：1 格 */}
         <button
           onClick={() => handleInput('AC')}
           className="col-span-2 bg-gray-200 text-gray-600 rounded-xl text-lg font-bold hover:bg-gray-300 active:scale-95 py-3 shadow-sm mt-1"
@@ -93,7 +91,7 @@ const Calculator = ({ value, onChange, onCalculate }) => {
           AC
         </button>
 
-        {/* = 按钮：占 3 格 */}
+        {/* = 按钮：3 格 */}
         <button
           onClick={() => handleInput('=')}
           className="col-span-2 bg-[#e0A9BB] text-white rounded-xl text-2xl font-bold hover:bg-[#d698ab] active:scale-95 py-3 shadow-sm mt-1"
@@ -105,27 +103,36 @@ const Calculator = ({ value, onChange, onCalculate }) => {
   );
 };
 
-// 2. Selection Grid Component (Categories / Accounts)
-const SelectionGrid = ({ items, selectedId, onSelect }) => (
-  <div className="grid grid-cols-2 gap-4 content-start h-full overflow-y-auto p-1">
+// 选择网格组件
+const SelectionGrid = ({ items, selectedId, onSelect, onAdd }) => (
+  <div className="grid grid-cols-3 gap-3 content-start h-full overflow-y-auto p-1">
+    {onAdd && (
+      <button
+        onClick={onAdd}
+        className="flex flex-col items-center justify-center p-1 rounded-xl transition-all border bg-white border-dashed border-gray-300 text-gray-400 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-400"
+      >
+        <span className="text-xl mb-2"><Plus size={24}/></span>
+        <span className="text-xs font-medium font-serif">添加</span>
+      </button>
+    )}
     {items.map((item) => (
       <button
         key={item.id}
         onClick={() => onSelect(item)}
-        className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all border ${
+        className={`flex flex-col items-center justify-center p-1 rounded-xl transition-all border ${
           selectedId === item.id
             ? 'bg-pink-50 border-[#e0A9BB] text-[#e0A9BB]'
             : 'bg-white border-gray-100 text-gray-600 hover:border-pink-200 hover:bg-gray-50'
         }`}
       >
-        <span className="text-2xl mb-2">{item.icon}</span>
-        <span className="text-xs font-medium">{item.name}</span>
+        <span className="text-xl mb-2">{item.icon}</span>
+        <span className="text-xs font-medium font-serif">{item.name}</span>
       </button>
     ))}
   </div>
 );
 
-// 3. Calendar Component
+// 日期选择器组件
 const CustomCalendar = ({ selectedDate, onSelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -191,8 +198,8 @@ const CustomCalendar = ({ selectedDate, onSelect }) => {
   );
 };
 
-// --- Main Modal Component ---
-export default function RecordTransactionModal({ isOpen, onClose, currentUser }) {
+// 主组件
+export default function RecordTransactionModal({ isOpen, onClose, currentUser, onNavigate, onSaveSuccess }) {
   const [type, setType] = useState('expense'); // 'expense' | 'income'
   const [amount, setAmount] = useState('0');
   const [category, setCategory] = useState(null);
@@ -201,12 +208,11 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
   const [activeField, setActiveField] = useState('amount'); // 'amount' | 'category' | 'account' | 'date'
   const [note, setNote] = useState('');
 
-  // Data from backend
+  // 后端数据
   const [categories, setCategories] = useState({ expense: [], income: [] });
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch data when modal opens
   useEffect(() => {
     if (isOpen && currentUser) {
       const fetchData = async () => {
@@ -240,7 +246,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
       };
       fetchData();
 
-      // Reset form
+      // 重置表单数据
       setAmount('0');
       setDate(new Date());
       setActiveField('amount');
@@ -248,7 +254,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
     }
   }, [isOpen, currentUser]);
 
-  // Update category when type changes
+  // 根据 type 动态设置 category
   useEffect(() => {
     const currentList = type === 'expense' ? categories.expense : categories.income;
     if (currentList.length > 0) {
@@ -264,14 +270,13 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // 新增：通用的计算逻辑函数
+  // 计算逻辑函数
   const handleCalculate = () => {
     try {
       // 如果当前已经是结果或初始值，不处理
       if (amount === 'Error' || amount === '0') return;
 
       const safeValue = amount.replace(/×/g, '*').replace(/÷/g, '/');
-      // eslint-disable-next-line no-eval
       const result = eval(safeValue);
 
       if (result < 0 || !isFinite(result) || isNaN(result)) {
@@ -280,9 +285,8 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
         setAmount(String(parseFloat(result.toFixed(2))));
       }
     } catch (e) {
-      // 如果算式不完整（比如 "100+"），切换时保持原样或报错，这里选择保持原样让用户继续输，或者报错
-      // 根据你的需求，通常这里报错比较直观，或者不改变（静默失败）
-      // 这里为了防止格式错误的数据存入，设为 Error
+      // 如果算式不完整（比如 "100+"），切换时报错
+
       setAmount('Error');
     }
   };
@@ -294,13 +298,29 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
     setActiveField(field);
   };
 
-  const handleSave = async () => {
+  const handleAddCategory = () => {
+    if (onNavigate) {
+      localStorage.setItem('open_category_drawer', 'true');
+      onNavigate('categories');
+      onClose();
+    }
+  };
+
+  const handleAddAccount = () => {
+    if (onNavigate) {
+      localStorage.setItem('open_account_drawer', 'true');
+      onNavigate('accounts');
+      onClose();
+    }
+  };
+
+  const handleSave = async (shouldClose = true) => {
     if (!category || !account) {
       alert("请选择分类和账户");
       return;
     }
 
-    // Ensure calculation is done
+    // 确保金额有效
     let finalAmount = amount;
     if (['+', '-', '*', '/'].some(op => amount.includes(op))) {
        try {
@@ -321,7 +341,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
 
     const userId = currentUser.id;
     
-    // 格式化为本地时间字符串 (YYYY-MM-DDTHH:mm:ss)，避免 UTC 时区转换导致日期偏差
+    // 格式化为本地时间字符串 (YYYY-MM-DDTHH:mm:ss)
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -336,7 +356,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
       categoryId: category.id,
       amount: parseFloat(finalAmount),
       type : type === 'expense' ? 'EXPENSE' : 'INCOME',
-      tradeTime: localTradeTime, // 修改字段名为 tradeTime，并使用本地时间
+      tradeTime: localTradeTime, // 本地时间
       remark: note
     };
 
@@ -349,9 +369,15 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
       
       if (response.ok) {
         console.log('Transaction saved');
-        onClose();
-        // Optional: Trigger refresh
-        window.location.reload(); // Simple way to refresh data
+        if (onSaveSuccess) onSaveSuccess();
+        
+        if (shouldClose) {
+          onClose();
+        } else {
+          setAmount('0');
+          setNote('');
+          setActiveField('amount');
+        }
       } else {
         console.error("Failed to save transaction");
         alert("保存失败");
@@ -363,8 +389,14 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-      <div className="bg-white rounded-3xl  w-[800px] h-[500px] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-3xl  w-[800px] h-[500px] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -396,7 +428,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
           <div className="w-8/12 flex flex-col gap-3 border-r border-gray-100 bg-white">
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
             
-            {/* Amount Field */}
+            {/* 金额字段 */}
             <div 
               onClick={() => setActiveField('amount')}
               className={`group cursor-pointer space-y-1.5 ${activeField === 'amount' ? '' : 'opacity-70 hover:opacity-100'}`}
@@ -424,7 +456,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
               </div>
             </div>
 
-            {/* Category Field */}
+            {/* 分类字段 */}
             <div 
               onClick={() => switchField('category')}
               className={`group cursor-pointer space-y-1.5 ${activeField === 'category' ? '' : 'opacity-70 hover:opacity-100'}`}
@@ -435,13 +467,13 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
               }`}>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{category?.icon || '❓'}</span>
-                  <span className="text-sm font-medium text-gray-700">{category?.name || '请选择分类'}</span>
+                  <span className="text-sm font-medium text-gray-700 font-serif">{category?.name || '请选择分类'}</span>
                 </div>
                 <Tag size={16} className="text-gray-400" />
               </div>
             </div>
 
-            {/* Account Field */}
+            {/* 账户字段 */}
             <div 
               onClick={() => switchField('account')}
               className={`group cursor-pointer space-y-1.5 ${activeField === 'account' ? '' : 'opacity-70 hover:opacity-100'}`}
@@ -452,13 +484,13 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
               }`}>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{account?.icon || '💳'}</span>
-                  <span className="text-sm font-medium text-gray-700">{account?.name || '请选择账户'}</span>
+                  <span className="text-sm font-medium text-gray-700 font-serif">{account?.name || '请选择账户'}</span>
                 </div>
                 <CreditCard size={16} className="text-gray-400" />
               </div>
             </div>
 
-            {/* Date Field */}
+            {/* 日期字段 */}
             <div 
               onClick={() => switchField('date')}
               className={`group cursor-pointer space-y-1.5 ${activeField === 'date' ? '' : 'opacity-70 hover:opacity-100'}`}
@@ -472,13 +504,13 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
               </div>
             </div>
 
-            {/* Note Field (新增的备注栏目) */}
+            {/* 备注字段 */}
             <div 
               onClick={() => switchField('note')}
               className={`group cursor-pointer space-y-1 ${activeField === 'note' ? '' : 'opacity-70 hover:opacity-100'}`}
             >
               <label className="text-xs font-medium text-gray-400 ml-1">备注</label>
-              <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
+              <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all font-serif ${
                 activeField === 'note' ? 'border-[#e0A9BB] bg-pink-50/30' : 'border-gray-100 hover:border-gray-200 bg-gray-50'
               }`}>
                 <span className={`text-sm font-medium truncate pr-2 ${note ? 'text-gray-700' : 'text-gray-400'}`}>
@@ -488,21 +520,23 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
               </div>
             </div>
 
-            {/* 这是一个垫片，确保最后一个元素不贴底 */}
+            {/* 垫片，确保最后一个元素不贴底 */}
               <div className="h-2"></div>
             </div>
 
-            {/* 2. 固定底部区域：放置按钮 */}
-            {/* z-10 确保它浮在滚动内容之上，border-t 增加分割感 */}
+
             <div className="p-5 border-t border-gray-50 bg-white z-10 shrink-0">
               <div className="flex gap-3">
                 <button 
-                  onClick={handleSave}
+                  onClick={() => handleSave(true)}
                   className="flex-1 bg-[#e0A9BB] text-white py-3 rounded-xl font-medium hover:bg-[#d698ab] active:scale-95 transition-all shadow-sm shadow-pink-100"
                 >
                   保存
                 </button>
-                <button className="flex-1 bg-white border border-[#e0A9BB] text-[#e0A9BB] py-3 rounded-xl font-medium hover:bg-pink-50 active:scale-95 transition-all">
+                <button 
+                  onClick={() => handleSave(false)}
+                  className="flex-1 bg-white border border-[#e0A9BB] text-[#e0A9BB] py-3 rounded-xl font-medium hover:bg-pink-50 active:scale-95 transition-all"
+                >
                   保存并再记一笔
                 </button>
               </div>
@@ -510,7 +544,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
 
           </div>
 
-          {/* Right Side: Interactive Panel */}
+          {/* 右侧 */}
           <div className="w-4/12 p-6 bg-white">
             {activeField === 'amount' && (
               <Calculator 
@@ -524,6 +558,7 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
                 items={type === 'expense' ? categories.expense : categories.income} 
                 selectedId={category?.id} 
                 onSelect={(item) => setCategory(item)} 
+                onAdd={handleAddCategory}
               />
             )}
             {activeField === 'account' && (
@@ -531,6 +566,8 @@ export default function RecordTransactionModal({ isOpen, onClose, currentUser })
                 items={accounts} 
                 selectedId={account?.id} 
                 onSelect={(item) => setAccount(item)} 
+                onAdd={handleAddAccount}
+
               />
             )}
             {activeField === 'date' && (

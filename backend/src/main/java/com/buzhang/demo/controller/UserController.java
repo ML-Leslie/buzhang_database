@@ -42,4 +42,9 @@ public class UserController {
     public SysUser get(@PathVariable Long id) {
         return userMapper.findById(id);
     }
+
+    @GetMapping("/check")
+    public boolean checkUsername(@RequestParam String username) {
+        return userMapper.findByUsername(username) != null;
+    }
 }
