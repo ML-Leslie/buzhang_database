@@ -26,16 +26,15 @@ services:
     restart: always
 
   db:
-    image: postgres:15-alpine
+    image: enmotech/opengauss:3.1.0
     container_name: demo-db
     environment:
-      - POSTGRES_USER=gaussdb
-      - POSTGRES_PASSWORD=OpenGauss@123
-      - POSTGRES_DB=postgres
+      - GS_PASSWORD=OpenGauss@123
+    privileged: true
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/opengauss/data
     networks:
       - app-network
     restart: always
