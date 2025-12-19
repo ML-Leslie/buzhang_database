@@ -1,0 +1,48 @@
+services:
+  backend:
+    build: ./backend
+    container_name: demo-backend
+    ports:
+      - "7777:7777"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres?currentSchema=public
+      - SPRING_DATASOURCE_USERNAME=gaussdb
+      - SPRING_DATASOURCE_PASSWORD=OpenGauss@123
+    depends_on:
+      - db
+    networks:
+      - app-network
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: demo-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    container_name: demo-db
+    environment:
+      - POSTGRES_USER=gaussdb
+      - POSTGRES_PASSWORD=OpenGauss@123
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
