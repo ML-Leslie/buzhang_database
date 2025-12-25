@@ -18,7 +18,7 @@ services:
     build: ./frontend
     container_name: demo-frontend
     ports:
-      - "8080:80"
+      - "7778:80"
     depends_on:
       - backend
     networks:
